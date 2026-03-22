@@ -1,0 +1,79 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/home/home",
+      "style": {
+        "navigationBarTitleText": "首页",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/home/station-map",
+      "style": {
+        "navigationBarTitleText": "站点地图/状态",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/alarm/alarm",
+      "style": {
+        "navigationBarTitleText": "告警",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/alarm/detail",
+      "style": {
+        "navigationBarTitleText": "告警详情"
+      }
+    },
+    {
+      "path": "pages/monitor/monitor",
+      "style": {
+        "navigationBarTitleText": "监测"
+      }
+    },
+    {
+      "path": "pages/mine/mine",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#8a97ab",
+    "selectedColor": "#2563eb",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/alarm/alarm",
+        "text": "告警"
+      },
+      {
+        "pagePath": "pages/monitor/monitor",
+        "text": "监测"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "无线电频谱智能监测系统",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f7fb"
+  }
+}
