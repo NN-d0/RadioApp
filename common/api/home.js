@@ -20,22 +20,6 @@ function rawRequest({ url, method = 'GET', data = {}, header = {} }) {
   })
 }
 
-function normalizeResult(payload = {}) {
-  if (payload?.code === 200) {
-    return payload
-  }
-
-  if (payload?.data !== undefined) {
-    return {
-      code: 200,
-      msg: payload.msg || 'success',
-      data: payload.data
-    }
-  }
-
-  return null
-}
-
 function buildReadableMessage(res) {
   const body = res?.data || {}
   return (
@@ -66,14 +50,14 @@ async function doCoreGet(url, params = {}) {
     throw { msg: '登录已失效，请重新登录' }
   }
 
-  const normalized = normalizeResult(res.data || {})
-  if (normalized && normalized.code === 200) {
-    return normalized
+  const payload = res?.data || {}
+  if (payload?.code === 200) {
+    return payload
   }
 
   throw {
     msg: buildReadableMessage(res),
-    __raw: res.data || null
+    __raw: payload
   }
 }
 

@@ -3,11 +3,9 @@ import { getToken, clearAuth, getUserInfo, setUserInfo } from '../auth'
 
 function buildHeaders(extraHeaders = {}) {
   const token = getToken()
-  const userInfo = getUserInfo()
 
   return {
     Authorization: token ? `Bearer ${token}` : '',
-    'X-Username': userInfo?.username || 'admin',
     ...extraHeaders
   }
 }
@@ -16,15 +14,6 @@ function normalizeResult(payload = {}) {
   if (payload?.code === 200) {
     return payload
   }
-
-  if (payload?.data !== undefined) {
-    return {
-      code: 200,
-      msg: payload.msg || 'success',
-      data: payload.data
-    }
-  }
-
   return null
 }
 
@@ -91,7 +80,6 @@ export function updateCurrentUserPasswordApi(data) {
 
 export function uploadAvatarApi(filePath) {
   const token = getToken()
-  const userInfo = getUserInfo()
 
   return new Promise((resolve, reject) => {
     uni.uploadFile({
@@ -99,8 +87,7 @@ export function uploadAvatarApi(filePath) {
       filePath,
       name: 'file',
       header: {
-        Authorization: token ? `Bearer ${token}` : '',
-        'X-Username': userInfo?.username || 'admin'
+        Authorization: token ? `Bearer ${token}` : ''
       },
       success: (uploadRes) => {
         let result = {}
@@ -142,7 +129,7 @@ export function syncUserInfoCache(profileData = {}) {
   setUserInfo({
     ...oldUserInfo,
     username: profileData.username || oldUserInfo.username || 'admin',
-    nickName: profileData.nickName || '',
-    avatarUrl: profileData.avatarUrl || profileData.avatar || ''
+    nickName: profileData.nickName || oldUserInfo.nickName || '',
+    avatarUrl: profileData.avatarUrl || oldUserInfo.avatarUrl || ''
   })
 }

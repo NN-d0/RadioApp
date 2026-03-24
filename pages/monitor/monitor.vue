@@ -5,7 +5,7 @@
         <view class="monitor-header-top">
           <view>
             <view class="demo-page-title">实时监测</view>
-            <view class="demo-page-subtitle">站点地图联动、最新频谱参数与动态频谱图</view>
+            <view class="demo-page-subtitle">地图选站联动、最新频谱参数与简版动态频谱图</view>
           </view>
           <view class="monitor-switch-btn" @click="goStationMap">切换站点</view>
         </view>
@@ -18,7 +18,7 @@
       <view class="demo-card">
         <view class="demo-section-head">
           <view class="demo-section-title">站点选择</view>
-          <view class="demo-section-desc">支持地图页联动切换</view>
+          <view class="demo-section-desc">支持地图页联动切换，也支持本页直接切换</view>
         </view>
 
         <picker
@@ -35,7 +35,12 @@
 
         <view class="monitor-action-row">
           <view class="monitor-poll-text">轮询状态：{{ polling ? '运行中' : '已停止' }}</view>
-          <button class="demo-mini-btn" @click="handleManualRefresh">立即刷新</button>
+          <view class="monitor-action-buttons">
+            <button class="demo-mini-btn" @click="handleManualRefresh">手动刷新</button>
+            <button class="demo-mini-btn outline" @click="togglePolling">
+              {{ polling ? '停止轮询' : '开始轮询' }}
+            </button>
+          </view>
         </view>
       </view>
 
@@ -143,6 +148,8 @@
 <script>
 import { getLatestMonitorDataApi, getMonitorStationListApi } from '../../common/api/monitor'
 
+const STORAGE_KEY = 'app_selected_monitor_station'
+
 export default {
   data() {
     return {
@@ -198,8 +205,10 @@ export default {
       if (!points.length) {
         return { min: 0, max: 0 }
       }
+
       let min = Infinity
       let max = -Infinity
+
       points.forEach(item => {
         const power = Number(item.power)
         if (!Number.isNaN(power)) {
@@ -207,6 +216,11 @@ export default {
           if (power > max) max = power
         }
       })
+
+      if (!Number.isFinite(min) || !Number.isFinite(max)) {
+        return { min: 0, max: 0 }
+      }
+
       return { min, max }
     }
   },
@@ -227,14 +241,30 @@ export default {
       return num.toFixed(2)
     },
 
+    getStoredStation() {
+      return uni.getStorageSync(STORAGE_KEY) || null
+    },
+
+    persistSelectedStation(station) {
+      if (!station || !station.id) return
+      uni.setStorageSync(STORAGE_KEY, {
+        id: station.id,
+        stationName: station.stationName || '',
+        from: 'monitor',
+        selectedAt: Date.now()
+      })
+    },
+
     async initPage() {
       try {
         await this.loadStations()
-        this.applySelectedStationFromMap()
+        this.applySelectedStationFromStorage()
 
         if (this.stationList.length > 0) {
           await this.loadLatestData()
           this.startPolling()
+        } else {
+          this.drawSpectrumChart([])
         }
       } catch (error) {
         console.error('APP 实时监测初始化失败：', error)
@@ -247,7 +277,7 @@ export default {
 
     async loadStations() {
       const res = await getMonitorStationListApi()
-      this.stationList = res.data || []
+      this.stationList = res?.data || []
 
       if (!this.stationList.length) {
         uni.showToast({
@@ -262,8 +292,8 @@ export default {
       }
     },
 
-    applySelectedStationFromMap() {
-      const selected = uni.getStorageSync('app_selected_monitor_station')
+    applySelectedStationFromStorage() {
+      const selected = this.getStoredStation()
       if (!selected || !selected.id || !this.stationList.length) {
         return
       }
@@ -272,24 +302,36 @@ export default {
       if (index !== -1) {
         this.stationIndex = index
       }
-
-      uni.removeStorageSync('app_selected_monitor_station')
     },
 
     async loadLatestData() {
       const station = this.currentStation
       if (!station || !station.id) {
+        this.drawSpectrumChart([])
         return
       }
 
+      this.persistSelectedStation(station)
+
       try {
         const res = await getLatestMonitorDataApi(station.id)
-        const data = res.data || {}
-        const nextPoints = data.points || []
+        const data = res?.data || {}
+        const nextPoints = Array.isArray(data.points) ? data.points : []
 
         this.monitorData = {
-          ...this.monitorData,
-          ...data,
+          stationId: data.stationId || null,
+          stationName: data.stationName || station.stationName || '',
+          deviceId: data.deviceId || null,
+          deviceName: data.deviceName || '',
+          aiResult: data.aiResult || '',
+          centerFreq: Number(data.centerFreq || 0),
+          bandwidth: Number(data.bandwidth || 0),
+          powerLevel: Number(data.powerLevel || 0),
+          snapshotTime: data.snapshotTime || '',
+          dataSource: data.dataSource || '',
+          pointCount: Number(data.pointCount || 0),
+          peakFreq: Number(data.peakFreq || 0),
+          peakPower: Number(data.peakPower || 0),
           points: nextPoints
         }
 
@@ -307,6 +349,10 @@ export default {
     handleStationChange(e) {
       this.stationIndex = Number(e.detail.value || 0)
       this.lastPoints = []
+      const station = this.currentStation
+      if (station) {
+        this.persistSelectedStation(station)
+      }
       this.loadLatestData()
     },
 
@@ -336,20 +382,30 @@ export default {
       }
     },
 
+    togglePolling() {
+      if (this.polling) {
+        this.stopPolling()
+      } else {
+        this.startPolling()
+      }
+    },
+
     animateSpectrum(oldPoints = [], newPoints = []) {
       if (!newPoints.length) {
-        this.drawSpectrumChart(newPoints)
+        this.drawSpectrumChart([])
         return
       }
 
       const maxLen = newPoints.length
-      const safeOld = oldPoints.length === maxLen ? oldPoints : newPoints.map((item, index) => {
-        const fallback = oldPoints[index] || item
-        return {
-          freq: item.freq,
-          power: Number(fallback.power)
-        }
-      })
+      const safeOld = oldPoints.length === maxLen
+        ? oldPoints
+        : newPoints.map((item, index) => {
+            const fallback = oldPoints[index] || item
+            return {
+              freq: item.freq,
+              power: Number(fallback.power)
+            }
+          })
 
       let frame = 0
       const totalFrames = 10
@@ -420,149 +476,75 @@ export default {
         ctx.stroke()
       }
 
-      ctx.setStrokeStyle('#94a3b8')
-      ctx.setLineWidth(1.2)
-      ctx.beginPath()
-      ctx.moveTo(paddingLeft, paddingTop)
-      ctx.lineTo(paddingLeft, canvasHeight - paddingBottom)
-      ctx.lineTo(canvasWidth - paddingRight, canvasHeight - paddingBottom)
-      ctx.stroke()
-
       if (!points.length) {
         ctx.setFillStyle('#94a3b8')
-        ctx.setFontSize(12)
-        ctx.fillText('暂无频谱点位数据', canvasWidth / 2 - 42, canvasHeight / 2)
+        ctx.setFontSize(14)
+        ctx.fillText('暂无监测点位数据', canvasWidth / 2 - 54, canvasHeight / 2)
         ctx.draw()
         return
       }
 
-      let minPower = Infinity
-      let maxPower = -Infinity
-      points.forEach(item => {
+      const powers = points.map(item => Number(item.power)).filter(item => !Number.isNaN(item))
+      const minPower = Math.min(...powers)
+      const maxPower = Math.max(...powers)
+      const diff = maxPower - minPower || 1
+
+      const pointList = points.map((item, index) => {
         const power = Number(item.power)
-        if (!Number.isNaN(power)) {
-          if (power < minPower) minPower = power
-          if (power > maxPower) maxPower = power
-        }
+        const x = paddingLeft + innerWidth * (index / Math.max(points.length - 1, 1))
+        const y = paddingTop + innerHeight - ((power - minPower) / diff) * innerHeight
+        return { x, y, power }
       })
-
-      if (minPower === maxPower) {
-        minPower -= 4
-        maxPower += 4
-      }
-
-      minPower -= 2
-      maxPower += 2
-
-      const toXY = (item, index) => {
-        const x = paddingLeft + (innerWidth * index) / Math.max(points.length - 1, 1)
-        const power = Number(item.power)
-        const y = paddingTop + (maxPower - power) / (maxPower - minPower) * innerHeight
-        return { x, y }
-      }
-
-      const coords = points.map((item, index) => toXY(item, index))
 
       const areaGradient = ctx.createLinearGradient(0, paddingTop, 0, canvasHeight - paddingBottom)
-      areaGradient.addColorStop(0, 'rgba(37,99,235,0.35)')
-      areaGradient.addColorStop(1, 'rgba(37,99,235,0.03)')
+      areaGradient.addColorStop(0, 'rgba(37,99,235,0.28)')
+      areaGradient.addColorStop(1, 'rgba(37,99,235,0.02)')
 
       ctx.beginPath()
-      ctx.moveTo(coords[0].x, canvasHeight - paddingBottom)
-      coords.forEach((p, i) => {
-        if (i === 0) {
-          ctx.lineTo(p.x, p.y)
+      pointList.forEach((point, index) => {
+        if (index === 0) {
+          ctx.moveTo(point.x, point.y)
         } else {
-          const prev = coords[i - 1]
-          const cpx = (prev.x + p.x) / 2
-          ctx.quadraticCurveTo(prev.x, prev.y, cpx, (prev.y + p.y) / 2)
+          ctx.lineTo(point.x, point.y)
         }
       })
-      const last = coords[coords.length - 1]
-      ctx.lineTo(last.x, last.y)
-      ctx.lineTo(last.x, canvasHeight - paddingBottom)
+      ctx.lineTo(pointList[pointList.length - 1].x, canvasHeight - paddingBottom)
+      ctx.lineTo(pointList[0].x, canvasHeight - paddingBottom)
       ctx.closePath()
       ctx.setFillStyle(areaGradient)
       ctx.fill()
 
       ctx.beginPath()
-      ctx.moveTo(coords[0].x, coords[0].y)
-      coords.forEach((p, i) => {
-        if (i === 0) return
-        const prev = coords[i - 1]
-        const cpx = (prev.x + p.x) / 2
-        ctx.quadraticCurveTo(prev.x, prev.y, cpx, (prev.y + p.y) / 2)
+      pointList.forEach((point, index) => {
+        if (index === 0) {
+          ctx.moveTo(point.x, point.y)
+        } else {
+          ctx.lineTo(point.x, point.y)
+        }
       })
-      ctx.lineTo(last.x, last.y)
       ctx.setStrokeStyle('#2563eb')
-      ctx.setLineWidth(2.5)
+      ctx.setLineWidth(2.2)
       ctx.stroke()
 
-      ctx.beginPath()
-      ctx.moveTo(coords[0].x, coords[0].y)
-      coords.forEach((p, i) => {
-        if (i === 0) return
-        const prev = coords[i - 1]
-        const cpx = (prev.x + p.x) / 2
-        ctx.quadraticCurveTo(prev.x, prev.y, cpx, (prev.y + p.y) / 2)
-      })
-      ctx.lineTo(last.x, last.y)
-      ctx.setStrokeStyle('rgba(255,255,255,0.75)')
-      ctx.setLineWidth(1)
-      ctx.stroke()
-
-      let peakIndex = 0
-      points.forEach((item, index) => {
-        if (Number(item.power) > Number(points[peakIndex].power)) {
-          peakIndex = index
+      let maxIndex = 0
+      pointList.forEach((point, index) => {
+        if (point.power > pointList[maxIndex].power) {
+          maxIndex = index
         }
       })
 
-      const peak = coords[peakIndex]
-      ctx.setFillStyle('#ef4444')
+      const peak = pointList[maxIndex]
       ctx.beginPath()
       ctx.arc(peak.x, peak.y, 4, 0, Math.PI * 2)
+      ctx.setFillStyle('#ef4444')
       ctx.fill()
 
-      ctx.setStrokeStyle('#ffffff')
-      ctx.setLineWidth(2)
-      ctx.beginPath()
-      ctx.arc(peak.x, peak.y, 7, 0, Math.PI * 2)
-      ctx.stroke()
-
-      ctx.setFillStyle('rgba(15,23,42,0.82)')
-      this.roundRect(ctx, peak.x - 36, Math.max(peak.y - 34, 6), 72, 22, 8)
-      ctx.fill()
-
-      ctx.setFillStyle('#ffffff')
-      ctx.setFontSize(10)
-      ctx.fillText(
-        `${Number(points[peakIndex].power).toFixed(1)} dBm`,
-        peak.x - 30,
-        Math.max(peak.y - 19, 21)
-      )
-
-      ctx.setFillStyle('#94a3b8')
-      ctx.setFontSize(10)
-      ctx.fillText(maxPower.toFixed(0), 4, paddingTop + 3)
-      ctx.fillText(((maxPower + minPower) / 2).toFixed(0), 4, paddingTop + innerHeight / 2 + 3)
-      ctx.fillText(minPower.toFixed(0), 4, canvasHeight - paddingBottom + 3)
+      ctx.setFillStyle('#64748b')
+      ctx.setFontSize(11)
+      ctx.fillText(maxPower.toFixed(1), 4, paddingTop + 4)
+      ctx.fillText(minPower.toFixed(1), 4, canvasHeight - paddingBottom)
 
       ctx.draw()
-    },
-
-    roundRect(ctx, x, y, w, h, r) {
-      ctx.beginPath()
-      ctx.moveTo(x + r, y)
-      ctx.lineTo(x + w - r, y)
-      ctx.arcTo(x + w, y, x + w, y + r, r)
-      ctx.lineTo(x + w, y + h - r)
-      ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
-      ctx.lineTo(x + r, y + h)
-      ctx.arcTo(x, y + h, x, y + h - r, r)
-      ctx.lineTo(x, y + r)
-      ctx.arcTo(x, y, x + r, y, r)
-      ctx.closePath()
     }
   }
 }
@@ -573,29 +555,28 @@ export default {
 
 .monitor-header-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 20rpx;
 }
 
 .monitor-switch-btn {
-  padding: 10rpx 18rpx;
+  padding: 14rpx 24rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.16);
+  background: linear-gradient(135deg, #2563eb, #60a5fa);
   color: #ffffff;
-  font-size: 22rpx;
-  font-weight: 800;
-  white-space: nowrap;
+  font-size: 24rpx;
+  font-weight: 600;
 }
 
 .selected-station-bar {
   margin-top: 18rpx;
-  padding: 14rpx 18rpx;
-  border-radius: 16rpx;
-  background: rgba(255, 255, 255, 0.16);
-  color: #ffffff;
-  font-size: 24rpx;
-  font-weight: 700;
+  padding: 18rpx 22rpx;
+  border-radius: 18rpx;
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  font-size: 26rpx;
+  font-weight: 600;
 }
 
 .picker-wrap {
@@ -603,16 +584,14 @@ export default {
 }
 
 .picker-value {
-  width: 100%;
-  min-height: 88rpx;
+  min-height: 84rpx;
+  line-height: 84rpx;
+  padding: 0 24rpx;
   border-radius: 18rpx;
   background: #f8fafc;
   border: 2rpx solid #dbeafe;
-  padding: 0 24rpx;
-  display: flex;
-  align-items: center;
   font-size: 28rpx;
-  color: #1f2937;
+  color: #111827;
 }
 
 .monitor-action-row {
@@ -620,7 +599,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 20rpx;
+  flex-wrap: wrap;
 }
 
 .monitor-poll-text {
@@ -628,58 +608,66 @@ export default {
   color: #64748b;
 }
 
-.full-width {
-  grid-column: span 2;
+.monitor-action-buttons {
+  display: flex;
+  gap: 14rpx;
+}
+
+.demo-mini-btn.outline {
+  background: #ffffff;
+  color: #2563eb;
+  border: 2rpx solid #bfdbfe;
 }
 
 .chart-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
-  padding: 18rpx 20rpx;
-  border-radius: 18rpx;
-  background: linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%);
-  border: 2rpx solid #dbeafe;
-  margin-bottom: 18rpx;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+  margin-bottom: 22rpx;
 }
 
 .topbar-item {
-  flex: 1;
-}
-
-.topbar-label {
-  display: block;
-  font-size: 20rpx;
-  color: #94a3b8;
-}
-
-.topbar-value {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #1f2937;
-  font-weight: 800;
-}
-
-.spectrum-canvas {
-  width: 100%;
-  height: 260px;
+  padding: 18rpx 20rpx;
   border-radius: 18rpx;
   background: #f8fbff;
 }
 
-.axis-row {
-  margin-top: 12rpx;
-  display: flex;
-  justify-content: space-between;
-  font-size: 20rpx;
+.topbar-label {
+  display: block;
+  font-size: 22rpx;
   color: #8a97ab;
 }
 
-.y-axis-tip {
+.topbar-value {
+  display: block;
   margin-top: 10rpx;
-  font-size: 20rpx;
-  color: #94a3b8;
+  font-size: 26rpx;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.spectrum-canvas {
+  width: 100%;
+  height: 520rpx;
+  border-radius: 20rpx;
+  background: #f8fbff;
+}
+
+.axis-row,
+.y-axis-tip {
+  display: flex;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-top: 18rpx;
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.demo-info-line {
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #eef2f7;
+  font-size: 26rpx;
+  color: #1f2937;
+  line-height: 1.8;
 }
 </style>

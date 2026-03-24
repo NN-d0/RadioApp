@@ -1,92 +1,98 @@
 <template>
   <view class="container">
-    <view class="card">
-      <view class="title">{{ detail.title || '告警详情' }}</view>
-      <view class="sub-title">移动端告警确认与处理页面</view>
-    </view>
-
-    <view class="card">
-      <view class="tag-row">
-        <text class="level-tag" :class="levelClass(detail.alarmLevel)">
-          {{ detail.alarmLevel || '-' }}
-        </text>
-        <text class="status-tag" :class="statusClass(detail.alarmStatus)">
-          {{ alarmStatusText(detail.alarmStatus) }}
-        </text>
+    <view class="page-shell">
+      <view class="demo-page-header">
+        <view class="demo-page-title">告警详情</view>
+        <view class="demo-page-subtitle">移动端告警确认与处理页面</view>
       </view>
 
-      <view class="info-item">
-        <text class="info-label">告警编号</text>
-        <text class="info-value">{{ detail.alarmNo || '-' }}</text>
-      </view>
-      <view class="info-item">
-        <text class="info-label">站点</text>
-        <text class="info-value">{{ detail.stationName || ('站点ID:' + (detail.stationId || '-')) }}</text>
-      </view>
-      <view class="info-item">
-        <text class="info-label">设备</text>
-        <text class="info-value">{{ detail.deviceName || ('设备ID:' + (detail.deviceId || '-')) }}</text>
-      </view>
-      <view class="info-item">
-        <text class="info-label">告警类型</text>
-        <text class="info-value">{{ detail.alarmType || '-' }}</text>
-      </view>
-      <view class="info-item">
-        <text class="info-label">告警时间</text>
-        <text class="info-value">{{ formatTime(detail.alarmTime) }}</text>
-      </view>
-      <view class="info-item">
-        <text class="info-label">确认时间</text>
-        <text class="info-value">{{ formatTime(detail.confirmTime) }}</text>
-      </view>
-      <view class="info-item">
-        <text class="info-label">处理时间</text>
-        <text class="info-value">{{ formatTime(detail.handleTime) }}</text>
-      </view>
-      <view class="info-item multi">
-        <text class="info-label">告警内容</text>
-        <text class="info-value block">{{ detail.content || '-' }}</text>
-      </view>
-      <view class="info-item multi">
-        <text class="info-label">处理备注</text>
-        <text class="info-value block">{{ detail.handleNote || '-' }}</text>
-      </view>
-    </view>
+      <view class="demo-card">
+        <view class="tag-row">
+          <text class="level-tag" :class="levelClass(detail.alarmLevel)">
+            {{ detail.alarmLevel || '-' }}
+          </text>
+          <text class="status-tag" :class="statusClass(detail.alarmStatus)">
+            {{ alarmStatusText(detail.alarmStatus) }}
+          </text>
+        </view>
 
-    <view class="card" v-if="detail.alarmStatus !== 2">
-      <view class="panel-title">处置操作</view>
-
-      <button
-        v-if="detail.alarmStatus === 0"
-        class="confirm-btn"
-        :loading="confirmLoading"
-        @click="handleConfirm"
-      >
-        确认告警
-      </button>
-
-      <view class="handle-box">
-        <view class="form-label">处理备注</view>
-        <textarea
-          v-model="handleNote"
-          class="textarea"
-          placeholder="请输入处理备注"
-          placeholder-class="placeholder"
-        />
+        <view class="info-item">
+          <text class="info-label">告警标题</text>
+          <text class="info-value">{{ detail.title || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">告警编号</text>
+          <text class="info-value">{{ detail.alarmNo || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">站点</text>
+          <text class="info-value">{{ detail.stationName || ('站点ID:' + (detail.stationId || '-')) }}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">设备</text>
+          <text class="info-value">{{ detail.deviceName || ('设备ID:' + (detail.deviceId || '-')) }}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">告警类型</text>
+          <text class="info-value">{{ detail.alarmType || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">告警时间</text>
+          <text class="info-value">{{ formatTime(detail.alarmTime) }}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">确认时间</text>
+          <text class="info-value">{{ formatTime(detail.confirmTime) }}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">处理时间</text>
+          <text class="info-value">{{ formatTime(detail.handleTime) }}</text>
+        </view>
+        <view class="info-item multi">
+          <text class="info-label">告警内容</text>
+          <text class="info-value block">{{ detail.content || '-' }}</text>
+        </view>
+        <view class="info-item multi">
+          <text class="info-label">处理备注</text>
+          <text class="info-value block">{{ detail.handleNote || '-' }}</text>
+        </view>
       </view>
 
-      <button
-        class="primary-btn"
-        :loading="handleLoading"
-        @click="submitHandle"
-      >
-        确认处理
-      </button>
-    </view>
+      <view class="demo-card" v-if="detail.alarmStatus !== 2">
+        <view class="panel-title">处置操作</view>
 
-    <view class="card" v-else>
-      <view class="done-title">该告警已处理完成</view>
-      <view class="done-sub-title">当前记录仅用于查看详情与论文截图</view>
+        <button
+          v-if="detail.alarmStatus === 0"
+          class="confirm-btn"
+          :loading="confirmLoading"
+          @click="handleConfirm"
+        >
+          确认告警
+        </button>
+
+        <view class="handle-box">
+          <view class="form-label">处理备注</view>
+          <textarea
+            v-model="handleNote"
+            class="textarea"
+            placeholder="请输入处理备注"
+            placeholder-class="placeholder"
+          />
+        </view>
+
+        <button
+          class="primary-btn"
+          :loading="handleLoading"
+          @click="submitHandle"
+        >
+          确认处理
+        </button>
+      </view>
+
+      <view class="demo-card" v-else>
+        <view class="done-title">该告警已处理完成</view>
+        <view class="done-sub-title">当前记录仅用于查看详情与论文截图</view>
+      </view>
     </view>
   </view>
 </template>
@@ -146,26 +152,22 @@ export default {
         return
       }
 
-      const confirmRes = await new Promise((resolve) => {
+      const confirmed = await new Promise((resolve) => {
         uni.showModal({
           title: '确认提示',
           content: '确认将该告警标记为已确认吗？',
-          success: (res) => {
-            resolve(res.confirm)
-          }
+          success: (res) => resolve(!!res.confirm)
         })
       })
 
-      if (!confirmRes) return
+      if (!confirmed) return
 
       try {
         this.confirmLoading = true
 
-        const res = await confirmAlarmApi({
+        await confirmAlarmApi({
           alarmId: this.detail.id
         })
-
-        console.log('APP 告警确认命中接口：', res.__matchedUrl)
 
         this.detail.alarmStatus = 1
         this.detail.confirmTime = this.currentTimeText()
@@ -207,12 +209,10 @@ export default {
       try {
         this.handleLoading = true
 
-        const res = await handleAlarmApi({
+        await handleAlarmApi({
           alarmId: this.detail.id,
           handleNote: this.handleNote
         })
-
-        console.log('APP 告警处理命中接口：', res.__matchedUrl)
 
         this.detail.alarmStatus = 2
         this.detail.handleNote = this.handleNote
@@ -250,6 +250,8 @@ export default {
 </script>
 
 <style scoped>
+@import '../../common/styles/demo-ui.css';
+
 .tag-row {
   display: flex;
   gap: 16rpx;
@@ -366,6 +368,7 @@ export default {
   padding: 20rpx 24rpx;
   font-size: 28rpx;
   color: #1f2937;
+  box-sizing: border-box;
 }
 
 .placeholder {

@@ -3,7 +3,7 @@
     <view class="page-shell">
       <view class="demo-page-header">
         <view class="demo-page-title">首页总览</view>
-        <view class="demo-page-subtitle">移动端系统态势总览、站点联动与最新告警展示</view>
+        <view class="demo-page-subtitle">移动端系统态势总览、最新告警与快捷操作入口</view>
       </view>
 
       <view class="demo-grid-2">
@@ -13,7 +13,7 @@
           <view class="demo-stat-sub">
             在线 {{ summary.onlineStationCount || 0 }} / 离线 {{ summary.offlineStationCount || 0 }}
           </view>
-          <view class="demo-stat-link">点击查看站点地图并联动监测</view>
+          <view class="demo-stat-link">点击查看站点地图</view>
         </view>
 
         <view class="demo-stat-card theme-green">
@@ -24,53 +24,51 @@
           </view>
         </view>
 
-        <view class="demo-stat-card theme-red">
+        <view class="demo-stat-card theme-red is-clickable" @click="goAlarm">
           <view class="demo-stat-label">告警总数</view>
           <view class="demo-stat-value">{{ summary.alarmCount || 0 }}</view>
           <view class="demo-stat-sub">
-            未处理 {{ summary.pendingAlarmCount || 0 }}
+            未处理 {{ summary.pendingAlarmCount || 0 }} / 已确认 {{ summary.confirmedAlarmCount || 0 }}
           </view>
+          <view class="demo-stat-link">点击进入告警中心</view>
         </view>
 
-        <view class="demo-stat-card theme-purple">
-          <view class="demo-stat-label">已确认 / 已处理</view>
-          <view class="demo-stat-value">
-            {{ (summary.confirmedAlarmCount || 0) + (summary.handledAlarmCount || 0) }}
-          </view>
-          <view class="demo-stat-sub">
-            已确认 {{ summary.confirmedAlarmCount || 0 }} / 已处理 {{ summary.handledAlarmCount || 0 }}
-          </view>
+        <view class="demo-stat-card theme-purple is-clickable" @click="goMonitor">
+          <view class="demo-stat-label">已处理告警</view>
+          <view class="demo-stat-value">{{ summary.handledAlarmCount || 0 }}</view>
+          <view class="demo-stat-sub">支持移动监测、告警查看、处置闭环演示</view>
+          <view class="demo-stat-link">点击进入实时监测</view>
         </view>
       </view>
 
       <view class="demo-card">
         <view class="demo-section-head">
           <view class="demo-section-title">快捷入口</view>
-          <view class="demo-section-desc">演示链路核心入口</view>
+          <view class="demo-section-desc">移动端最小闭环演示入口</view>
         </view>
 
-        <view class="demo-quick-grid">
-          <view class="demo-quick-item" @click="goAlarm">
-            <view class="demo-quick-name">告警中心</view>
-            <view class="demo-quick-desc">查看并处理告警</view>
+        <view class="quick-grid">
+          <view class="quick-card quick-blue" @click="goMonitor">
+            <view class="quick-title">实时监测</view>
+            <view class="quick-desc">查看某站点最新频谱参数</view>
           </view>
 
-          <view class="demo-quick-item" @click="goMonitor">
-            <view class="demo-quick-name">实时监测</view>
-            <view class="demo-quick-desc">进入简版监测页</view>
+          <view class="quick-card quick-red" @click="goAlarm">
+            <view class="quick-title">告警中心</view>
+            <view class="quick-desc">查看告警并进入详情处置</view>
           </view>
 
-          <view class="demo-quick-item" @click="goStationMap">
-            <view class="demo-quick-name">站点地图</view>
-            <view class="demo-quick-desc">查看站点状态并联动监测</view>
+          <view class="quick-card quick-green" @click="goStationMap">
+            <view class="quick-title">站点地图</view>
+            <view class="quick-desc">从地图联动选择监测站点</view>
           </view>
         </view>
       </view>
 
-      <view class="demo-card demo-list-card">
-        <view class="demo-section-head latest-head">
+      <view class="demo-card">
+        <view class="demo-section-head">
           <view class="demo-section-title">最新告警</view>
-          <view class="demo-section-desc latest-link" @click="goAlarm">查看全部</view>
+          <view class="demo-section-desc">点击可进入告警详情页</view>
         </view>
 
         <view v-if="latestAlarmList.length > 0">
@@ -82,25 +80,33 @@
           >
             <view class="demo-item-top">
               <view class="demo-item-title">{{ item.title || '未命名告警' }}</view>
-              <view class="demo-status-tag" :class="statusClass(item.alarmStatus)">
-                {{ alarmStatusText(item.alarmStatus) }}
+              <view class="tag-col">
+                <text class="demo-level-tag" :class="levelClass(item.alarmLevel)">
+                  {{ item.alarmLevel || '-' }}
+                </text>
+                <text class="demo-status-tag" :class="statusClass(item.alarmStatus)">
+                  {{ alarmStatusText(item.alarmStatus) }}
+                </text>
               </view>
             </view>
 
-            <view class="demo-item-line">
-              {{ item.stationName || ('站点ID:' + (item.stationId || '-')) }}
-              ·
-              {{ item.deviceName || ('设备ID:' + (item.deviceId || '-')) }}
-            </view>
+            <view class="demo-item-line">告警编号：{{ item.alarmNo || '-' }}</view>
+            <view class="demo-item-line">站点：{{ item.stationName || '-' }}</view>
+            <view class="demo-item-line">设备：{{ item.deviceName || '-' }}</view>
+            <view class="demo-item-line">时间：{{ formatTime(item.alarmTime) }}</view>
 
-            <view class="demo-item-line">
-              {{ formatTime(item.alarmTime) }}
+            <view class="demo-item-foot">
+              <view class="demo-item-tip">点击查看详情</view>
+              <view class="demo-item-arrow">›</view>
             </view>
           </view>
         </view>
 
         <view v-else class="demo-empty-wrap">
           <view class="demo-empty-text">暂无最新告警</view>
+          <button class="demo-outline-btn retry-btn" :disabled="loading" @click="loadPageData">
+            {{ loading ? '加载中...' : '重新加载' }}
+          </button>
         </view>
       </view>
     </view>
@@ -117,6 +123,7 @@ import {
 export default {
   data() {
     return {
+      loading: false,
       summary: {
         stationCount: 0,
         onlineStationCount: 0,
@@ -129,8 +136,7 @@ export default {
         confirmedAlarmCount: 0,
         handledAlarmCount: 0
       },
-      latestAlarmList: [],
-      loading: false
+      latestAlarmList: []
     }
   },
   onShow() {
@@ -162,6 +168,14 @@ export default {
       }
       return map[status] || 'status-pending'
     },
+    levelClass(level) {
+      const map = {
+        HIGH: 'level-high',
+        MEDIUM: 'level-medium',
+        LOW: 'level-low'
+      }
+      return map[level] || 'level-medium'
+    },
     async loadPageData() {
       if (this.loading) return
 
@@ -173,10 +187,10 @@ export default {
           getAppHomeLatestAlarmsApi({ size: 5 })
         ])
 
-        this.summary = summaryRes.data || this.summary
-        this.latestAlarmList = alarmRes.data || []
+        this.summary = summaryRes?.data || this.summary
+        this.latestAlarmList = alarmRes?.data || []
       } catch (error) {
-        console.error('APP 首页总览加载失败：', error)
+        console.error('APP 首页加载失败：', error)
         uni.showToast({
           title: error?.msg || '首页数据加载失败',
           icon: 'none'
@@ -211,7 +225,7 @@ export default {
 
       try {
         const res = await getAppHomeAlarmDetailApi(item.id)
-        const detail = res.data || {}
+        const detail = res?.data || {}
 
         uni.setStorageSync('current_alarm_detail', detail)
         uni.navigateTo({
@@ -232,12 +246,50 @@ export default {
 <style scoped>
 @import '../../common/styles/demo-ui.css';
 
-.latest-head {
-  padding-top: 24rpx;
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20rpx;
+  margin-top: 12rpx;
 }
 
-.latest-link {
-  color: #2563eb;
+.quick-card {
+  border-radius: 20rpx;
+  padding: 28rpx 22rpx;
+  color: #ffffff;
+}
+
+.quick-blue {
+  background: linear-gradient(135deg, #2563eb, #60a5fa);
+}
+
+.quick-red {
+  background: linear-gradient(135deg, #dc2626, #f87171);
+}
+
+.quick-green {
+  background: linear-gradient(135deg, #16a34a, #4ade80);
+}
+
+.quick-title {
+  font-size: 30rpx;
   font-weight: 700;
+}
+
+.quick-desc {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  opacity: 0.95;
+}
+
+.tag-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.retry-btn {
+  margin-top: 20rpx;
 }
 </style>

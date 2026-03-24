@@ -1,4 +1,4 @@
-import { SYSTEM_BASE_URL, LOGIN_CANDIDATES } from '../config'
+import { SYSTEM_BASE_URL } from '../config'
 
 function rawRequest({ url, method = 'GET', data = {}, header = {} }) {
   return new Promise((resolve, reject) => {
@@ -10,12 +10,8 @@ function rawRequest({ url, method = 'GET', data = {}, header = {} }) {
         'Content-Type': 'application/json',
         ...header
       },
-      success: (res) => {
-        resolve(res)
-      },
-      fail: (err) => {
-        reject(err)
-      }
+      success: resolve,
+      fail: reject
     })
   })
 }
@@ -36,15 +32,6 @@ function extractToken(payload) {
   )
 }
 
-function isNotFoundResponse(res) {
-  const body = res?.data || {}
-  return (
-    res?.statusCode === 404 ||
-    body?.status === 404 ||
-    body?.error === 'Not Found'
-  )
-}
-
 function buildReadableMessage(res) {
   const body = res?.data || {}
   return (
@@ -56,65 +43,46 @@ function buildReadableMessage(res) {
   )
 }
 
+/**
+ * APP 登录接口
+ * 统一固定为：/api/system/auth/login
+ *
+ * 为了兼容当前 pages/login/login.vue 的现有写法，
+ * 这里仍然返回 __token 字段，避免你还要同步改登录页。
+ */
 export async function loginApi(loginForm) {
-  const tried = []
-  let lastResponse = null
-  let lastRequestFail = null
+  const requestUrl = '/api/system/auth/login'
 
-  for (const url of LOGIN_CANDIDATES) {
-    tried.push(url)
+  const res = await rawRequest({
+    url: requestUrl,
+    method: 'POST',
+    data: loginForm,
+    header: {
+      Authorization: ''
+    }
+  })
 
-    try {
-      const res = await rawRequest({
-        url,
-        method: 'POST',
-        data: loginForm,
-        header: {
-          Authorization: ''
-        }
-      })
+  const token = extractToken(res.data)
 
-      lastResponse = res
+  if (res?.data?.code === 200 && token) {
+    return {
+      ...res.data,
+      __token: token,
+      __matchedUrl: requestUrl
+    }
+  }
 
-      if (isNotFoundResponse(res)) {
-        continue
-      }
-
-      const token = extractToken(res.data)
-
-      if (token) {
-        return {
-          ...res.data,
-          __token: token,
-          __matchedUrl: url,
-          __triedUrls: tried
-        }
-      }
-
-      if (res?.data?.code === 200) {
-        return {
-          ...res.data,
-          __token: token,
-          __matchedUrl: url,
-          __triedUrls: tried
-        }
-      }
-
-      throw {
-        msg: buildReadableMessage(res),
-        __matchedUrl: url,
-        __triedUrls: tried,
-        __raw: res.data
-      }
-    } catch (err) {
-      lastRequestFail = err
+  if (res?.data?.code === 200) {
+    return {
+      ...res.data,
+      __token: token,
+      __matchedUrl: requestUrl
     }
   }
 
   throw {
-    msg: '未匹配到可用登录接口，请检查后端真实登录地址',
-    __triedUrls: tried,
-    __lastResponse: lastResponse?.data || null,
-    __lastRequestFail: lastRequestFail || null
+    msg: buildReadableMessage(res),
+    __matchedUrl: requestUrl,
+    __raw: res.data || null
   }
 }

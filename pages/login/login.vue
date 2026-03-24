@@ -126,10 +126,10 @@ export default {
           password: this.form.password
         })
 
-        const token = res.__token || ''
+        const token = res?.__token || ''
+        const userInfo = res?.data?.userInfo || {}
 
         if (!token) {
-          console.error('APP 登录返回结果：', res)
           uni.showToast({
             title: '登录成功但未获取到 token',
             icon: 'none'
@@ -137,12 +137,16 @@ export default {
           return
         }
 
-        console.log('APP 登录命中接口：', res.__matchedUrl)
-        console.log('APP 登录尝试路径：', res.__triedUrls)
-
         setToken(token)
         setUserInfo({
-          username: this.form.username
+          id: userInfo.id || '',
+          username: userInfo.username || this.form.username,
+          realName: userInfo.realName || '',
+          nickName: userInfo.nickName || '',
+          avatarUrl: userInfo.avatarUrl || '',
+          roleCode: userInfo.roleCode || '',
+          phone: userInfo.phone || '',
+          status: userInfo.status
         })
 
         uni.showToast({
@@ -154,10 +158,9 @@ export default {
           uni.switchTab({
             url: '/pages/home/home'
           })
-        }, 300)
+        }, 250)
       } catch (error) {
         console.error('APP 登录失败：', error)
-
         uni.showToast({
           title: error?.msg || '登录失败',
           icon: 'none',
@@ -225,22 +228,22 @@ export default {
     calc(34rpx + env(safe-area-inset-top))
     32rpx
     calc(34rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 
 .hero-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 40rpx;
+  padding-top: 40rpx;
+  text-align: center;
 }
 
 .logo-shell {
+  width: 160rpx;
+  height: 160rpx;
+  margin: 0 auto;
+  border-radius: 50%;
   position: relative;
-  width: 248rpx;
-  height: 248rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -249,254 +252,179 @@ export default {
 .logo-ring {
   position: absolute;
   inset: 0;
-  border-radius: 42rpx;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08));
-  box-shadow:
-    0 18rpx 44rpx rgba(15, 23, 42, 0.16),
-    inset 0 2rpx 0 rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  border: 2rpx solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 40rpx rgba(255, 255, 255, 0.12) inset;
 }
 
 .logo {
+  width: 112rpx;
+  height: 112rpx;
   position: relative;
-  z-index: 2;
-  width: 208rpx;
-  height: 208rpx;
-  border-radius: 34rpx;
-  background: rgba(255, 255, 255, 0.98);
-  padding: 14rpx;
+  z-index: 1;
 }
 
 .hero-badge {
-  margin-top: 18rpx;
-  padding: 10rpx 24rpx;
+  margin: 30rpx auto 0;
+  width: fit-content;
+  padding: 10rpx 20rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: #ffffff;
-  font-size: 22rpx;
-  font-weight: 700;
-  letter-spacing: 1rpx;
+  background: rgba(255, 255, 255, 0.14);
+  color: #eaf2ff;
+  font-size: 24rpx;
+  font-weight: 600;
 }
 
 .system-title {
-  margin-top: 24rpx;
-  font-size: 58rpx;
-  line-height: 1.22;
-  font-weight: 900;
+  margin-top: 30rpx;
+  font-size: 48rpx;
+  line-height: 1.35;
+  font-weight: 800;
   color: #ffffff;
-  text-align: center;
-  letter-spacing: 1rpx;
-  text-shadow: 0 6rpx 20rpx rgba(15, 23, 42, 0.2);
 }
 
 .system-sub-title {
   margin-top: 18rpx;
   font-size: 28rpx;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.94);
-  text-align: center;
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .hero-tags {
-  margin-top: 24rpx;
+  margin-top: 28rpx;
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 14rpx;
 }
 
 .hero-tag {
-  padding: 10rpx 22rpx;
+  padding: 10rpx 20rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.13);
-  color: #ffffff;
-  font-size: 22rpx;
-  line-height: 1;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.12);
+  color: #edf4ff;
+  font-size: 24rpx;
 }
 
 .login-card {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.97);
-  border-radius: 34rpx;
-  padding: 34rpx 28rpx 34rpx;
-  box-shadow:
-    0 24rpx 56rpx rgba(15, 23, 42, 0.16),
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(8rpx);
+  margin-top: 48rpx;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 32rpx;
+  padding: 34rpx 30rpx;
+  box-shadow: 0 24rpx 60rpx rgba(11, 30, 84, 0.22);
 }
 
 .card-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 20rpx;
+  gap: 24rpx;
+  margin-bottom: 28rpx;
 }
 
 .card-title {
-  font-size: 36rpx;
-  line-height: 1.35;
-  font-weight: 900;
-  color: #14213d;
+  font-size: 38rpx;
+  color: #1f2a37;
+  font-weight: 800;
 }
 
 .card-sub-title {
-  margin-top: 12rpx;
-  font-size: 25rpx;
-  line-height: 1.55;
-  color: #8a97ab;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #7a879c;
 }
 
 .card-icon {
-  width: 68rpx;
-  height: 68rpx;
+  width: 72rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
   border-radius: 20rpx;
-  background: linear-gradient(135deg, #eef4ff 0%, #d9e8ff 100%);
-  color: #2457d6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 30rpx;
-  font-weight: 900;
-  flex-shrink: 0;
+  background: linear-gradient(135deg, #2d6df6, #5ea2ff);
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 700;
 }
 
-.form-item {
-  margin-top: 28rpx;
+.form-item + .form-item {
+  margin-top: 24rpx;
 }
 
 .form-label {
-  margin-bottom: 14rpx;
-  font-size: 27rpx;
-  line-height: 1.4;
-  color: #334155;
-  font-weight: 800;
+  margin-bottom: 12rpx;
+  font-size: 26rpx;
+  color: #475569;
+  font-weight: 700;
 }
 
 .input-wrap {
-  width: 100%;
-  height: 94rpx;
   display: flex;
   align-items: center;
-  background: #f8fafc;
-  border: 2rpx solid #dbeafe;
+  background: #f8fbff;
+  border: 2rpx solid #dce8f8;
   border-radius: 20rpx;
-  padding: 0 22rpx 0 0;
+  overflow: hidden;
 }
 
 .input-prefix {
-  width: 82rpx;
-  flex-shrink: 0;
+  width: 84rpx;
   text-align: center;
-  font-size: 28rpx;
-  font-weight: 800;
-  color: #4a67b3;
+  font-size: 26rpx;
+  color: #2d6df6;
+  font-weight: 700;
 }
 
 .input {
   flex: 1;
-  height: 100%;
-  font-size: 30rpx;
+  height: 92rpx;
+  font-size: 28rpx;
   color: #1f2937;
 }
 
 .placeholder {
-  color: #9ca3af;
+  color: #a0aec0;
 }
 
-.login-btn {
-  margin-top: 40rpx;
-  height: 94rpx;
-  line-height: 94rpx;
-  border-radius: 22rpx;
-  font-size: 34rpx;
-  font-weight: 900;
-  letter-spacing: 1rpx;
-  background: linear-gradient(90deg, #2d63e8 0%, #4a8cff 100%);
+.primary-btn.login-btn {
+  margin-top: 34rpx;
+  height: 92rpx;
+  line-height: 92rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #2d6df6, #5ea2ff);
   color: #ffffff;
-  box-shadow: 0 16rpx 34rpx rgba(59, 130, 246, 0.28);
+  font-size: 30rpx;
+  font-weight: 700;
   border: none;
 }
 
 .login-tips {
   margin-top: 28rpx;
-  padding-top: 20rpx;
-  border-top: 1rpx solid #eef2f7;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
 }
 
 .tip-item {
   display: flex;
-  align-items: flex-start;
-  margin-top: 10rpx;
-  font-size: 22rpx;
+  align-items: center;
+  gap: 12rpx;
+  font-size: 24rpx;
+  color: #64748b;
   line-height: 1.7;
-  color: #7c8ba1;
 }
 
 .tip-dot {
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: #3b82f6;
-  margin-top: 12rpx;
-  margin-right: 12rpx;
+  background: #2d6df6;
   flex-shrink: 0;
 }
 
 .page-footer {
-  margin-top: 26rpx;
+  margin-top: auto;
+  padding-top: 28rpx;
   text-align: center;
-  font-size: 21rpx;
   color: rgba(255, 255, 255, 0.82);
-}
-
-/* 小屏手机适配 */
-@media screen and (max-width: 375px) {
-  .login-wrapper {
-    padding:
-      calc(24rpx + env(safe-area-inset-top))
-      24rpx
-      calc(28rpx + env(safe-area-inset-bottom));
-  }
-
-  .hero-section {
-    margin-bottom: 30rpx;
-  }
-
-  .logo-shell {
-    width: 220rpx;
-    height: 220rpx;
-  }
-
-  .logo {
-    width: 186rpx;
-    height: 186rpx;
-  }
-
-  .system-title {
-    font-size: 50rpx;
-  }
-
-  .system-sub-title {
-    font-size: 25rpx;
-  }
-
-  .login-card {
-    padding: 28rpx 22rpx 28rpx;
-  }
-
-  .card-title {
-    font-size: 34rpx;
-  }
-
-  .input-wrap {
-    height: 88rpx;
-  }
-
-  .login-btn {
-    height: 88rpx;
-    line-height: 88rpx;
-    font-size: 32rpx;
-  }
+  font-size: 22rpx;
 }
 </style>

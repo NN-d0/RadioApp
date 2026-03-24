@@ -119,7 +119,6 @@ export default {
         realName: '',
         nickName: '',
         avatarUrl: '',
-        avatar: '',
         roleName: ''
       },
       editForm: {
@@ -134,7 +133,7 @@ export default {
   },
   computed: {
     currentAvatar() {
-      return this.editForm.avatarUrl || this.profile.avatarUrl || this.profile.avatar || this.defaultAvatar
+      return this.editForm.avatarUrl || this.profile.avatarUrl || this.defaultAvatar
     }
   },
   onShow() {
@@ -150,8 +149,7 @@ export default {
           username: data.username || '',
           realName: data.realName || '',
           nickName: data.nickName || '',
-          avatarUrl: data.avatarUrl || data.avatar || '',
-          avatar: data.avatar || data.avatarUrl || '',
+          avatarUrl: data.avatarUrl || '',
           roleName: data.roleName || '管理员'
         }
 
@@ -204,7 +202,7 @@ export default {
         const uploadRes = await uploadAvatarApi(filePath)
         const uploadData = uploadRes.data || {}
 
-        this.editForm.avatarUrl = uploadData.avatarUrl || uploadData.avatar || ''
+        this.editForm.avatarUrl = uploadData.avatarUrl || ''
         await this.handleUpdateProfile('头像已更新')
       } catch (error) {
         console.error('APP 头像上传失败：', error)
@@ -237,8 +235,7 @@ export default {
         const data = res.data || {}
 
         this.profile.nickName = data.nickName || this.editForm.nickName
-        this.profile.avatarUrl = data.avatarUrl || data.avatar || this.editForm.avatarUrl
-        this.profile.avatar = data.avatar || data.avatarUrl || this.editForm.avatarUrl
+        this.profile.avatarUrl = data.avatarUrl || this.editForm.avatarUrl
 
         this.editForm.nickName = this.profile.nickName
         this.editForm.avatarUrl = this.profile.avatarUrl
