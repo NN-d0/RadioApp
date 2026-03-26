@@ -1,27 +1,28 @@
 // =============================
-// APP 端基础地址配置
+// APP 端统一网关地址配置
 // 说明：
-// 1. H5 环境通过 Vite 代理访问，避免跨域
-// 2. 非 H5（真机 / 模拟器）直接访问后端服务
-// 3. 当前先保持 system / core 分端口，保证最小可运行
+// 1. APP 登录、首页、告警、监测、个人中心全部统一走 gateway:9000
+// 2. 这样可以避免 APP 直连 9100 / 9200，后续切换环境也更简单
+// 3. H5 通过 Vite 代理转发到 gateway，非 H5 直接访问 gateway
 // =============================
 
-// system 服务：登录、个人资料、密码、头像
+let GATEWAY_BASE_URL = ''
 let SYSTEM_BASE_URL = ''
-
-// core 服务：告警、监测、首页态势、站点状态
 let CORE_BASE_URL = ''
 
-// H5 环境：走代理
+// H5 环境：走本地代理
 // #ifdef H5
-SYSTEM_BASE_URL = '/app-system-api'
-CORE_BASE_URL = '/app-core-api'
+GATEWAY_BASE_URL = '/app-gateway'
+SYSTEM_BASE_URL = GATEWAY_BASE_URL
+CORE_BASE_URL = GATEWAY_BASE_URL
 // #endif
 
-// 非 H5 环境：改成你自己电脑实际可访问的 IP
+// 非 H5 环境：直接访问 gateway
+// 这里优先写本机默认地址，答辩时如果真机不在同一台电脑，请改成电脑局域网 IP
 // #ifndef H5
-SYSTEM_BASE_URL = 'http://10.18.14.254:9100'
-CORE_BASE_URL = 'http://10.18.14.254:9200'
+GATEWAY_BASE_URL = 'http://127.0.0.1:9000'
+SYSTEM_BASE_URL = GATEWAY_BASE_URL
+CORE_BASE_URL = GATEWAY_BASE_URL
 // #endif
 
-export { SYSTEM_BASE_URL, CORE_BASE_URL }
+export { GATEWAY_BASE_URL, SYSTEM_BASE_URL, CORE_BASE_URL }

@@ -5,17 +5,13 @@ export default defineConfig({
   plugins: [uni()],
   server: {
     host: '0.0.0.0',
-    port: 5173,
+    // 避免与 PC Web 端默认 5173 冲突
+    port: 5174,
     proxy: {
-      '/app-system-api': {
-        target: 'http://10.18.14.254:9100',
+      '/app-gateway': {
+        target: 'http://127.0.0.1:9000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/app-system-api/, '')
-      },
-      '/app-core-api': {
-        target: 'http://10.18.14.254:9200',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/app-core-api/, '')
+        rewrite: (path) => path.replace(/^\/app-gateway/, '')
       }
     }
   }
